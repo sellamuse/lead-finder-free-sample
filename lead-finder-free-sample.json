@@ -1,0 +1,301 @@
+{
+  "active": false,
+  "connections": {
+    "Build Overpass Query": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Query Overpass API",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Coordinates": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build Overpass Query",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Geocode Location": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Coordinates",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Leads": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Save Leads to CSV",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Query Overpass API": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse Leads",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Set Search Inputs": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Geocode Location",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Set Search Inputs",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "name": "Lead Finder \u2014 FREE SAMPLE (SellaMuse)",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-4e5f-8a9b-000000000001",
+      "name": "Start",
+      "parameters": {},
+      "position": [
+        240,
+        300
+      ],
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1
+    },
+    {
+      "id": "a1b2c3d4-0002-4e5f-8a9b-000000000002",
+      "name": "Setup Notes",
+      "parameters": {
+        "color": 3,
+        "content": "## 01 - Lead Finder \u2014 FREE SAMPLE\n\nTurns a niche + location into a structured lead list using **free, no-key** data sources:\n\n1. **Nominatim** (OpenStreetMap geocoder) turns your location text into coordinates. Free, no API key \u2014 requires a descriptive User-Agent (already set below).\n2. **Overpass API** finds businesses near those coordinates by OpenStreetMap tags. Free, no API key \u2014 shared public resource, so keep queries modest (one at a time, \u226460s timeout).\n\n**What this sample limits (on purpose, stated plainly):**\n- Search radius capped at **3,000 m**\n- Max **25 results**\n- Output is **name, address, phone** only\n- **6 example niches** in the map\n\nThe paid Lead Finder removes the caps and adds **website, email and coordinates** \u2014 the fields outreach actually runs on: https://payhip.com/SellaMuse\n\n**Before running:** edit the values in \"Set Search Inputs\". The defaults (cafe / Des Moines, IA) are EXAMPLES \u2014 replace them with your niche and location.\n\n**Output:** a CSV download (`leads.csv`) with business_name, address, phone.",
+        "height": 420,
+        "width": 560
+      },
+      "position": [
+        240,
+        40
+      ],
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1
+    },
+    {
+      "id": "a1b2c3d4-0003-4e5f-8a9b-000000000003",
+      "name": "Set Search Inputs",
+      "parameters": {
+        "options": {},
+        "values": {
+          "number": [
+            {
+              "name": "radius_meters",
+              "value": 3000
+            },
+            {
+              "name": "max_results",
+              "value": 25
+            }
+          ],
+          "string": [
+            {
+              "name": "niche",
+              "value": "cafe"
+            },
+            {
+              "name": "location",
+              "value": "Des Moines, IA"
+            },
+            {
+              "name": "user_agent",
+              "value": "sellamuse-lead-finder-sample/1.0"
+            }
+          ]
+        }
+      },
+      "position": [
+        460,
+        300
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2
+    },
+    {
+      "id": "a1b2c3d4-0004-4e5f-8a9b-000000000004",
+      "name": "Geocode Location",
+      "parameters": {
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "={{ $json.user_agent }}"
+            }
+          ]
+        },
+        "method": "GET",
+        "options": {
+          "timeout": 30000
+        },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format",
+              "value": "json"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.location }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "sendQuery": true,
+        "url": "https://nominatim.openstreetmap.org/search"
+      },
+      "position": [
+        680,
+        300
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "a1b2c3d4-0005-4e5f-8a9b-000000000005",
+      "name": "Extract Coordinates",
+      "parameters": {
+        "jsCode": "const geo = $input.first().json;\nconst cfg = $('Set Search Inputs').first().json;\nif (!geo || !geo.lat || !geo.lon) {\n  throw new Error('Geocoding returned no coordinates for \"' + cfg.location + '\". Try a more specific location (e.g. \"Des Moines, Iowa, USA\").');\n}\nreturn [{ json: {\n  niche: cfg.niche,\n  location: cfg.location,\n  latitude: parseFloat(geo.lat),\n  longitude: parseFloat(geo.lon),\n  radius_meters: Math.min(cfg.radius_meters || 3000, 3000), // FREE SAMPLE cap: 3,000 m\n  max_results: Math.min(cfg.max_results || 25, 25), // FREE SAMPLE cap: 25 results\n  user_agent: cfg.user_agent\n} }];"
+      },
+      "position": [
+        900,
+        300
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "a1b2c3d4-0006-4e5f-8a9b-000000000006",
+      "name": "Build Overpass Query",
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// Example niche -> OpenStreetMap tag mapping (sample set).\n// Full tag reference: OpenStreetMap Wiki \"Map features\".\nconst NICHE_MAP = {\n  // FREE SAMPLE: 6 example niches. The paid version ships the full NICHE_MAP (25+ niches).\n  dentist: ['amenity', 'dentist'],\n  restaurant: ['amenity', 'restaurant'],\n  cafe: ['amenity', 'cafe'],\n  coffee: ['amenity', 'cafe'],\n  plumber: ['craft', 'plumber'],\n  salon: ['shop', 'beauty'],\n  gym: ['leisure', 'fitness_centre']\n};\n\nconst key = String(input.niche || '').toLowerCase().trim().replace(/[\\s-]+/g, '_');\nconst tag = NICHE_MAP[key] || ['amenity', key];\n\nconst query = '[out:json][timeout:60];\\n'\n  + '(\\n'\n  + '  node[\"' + tag[0] + '\"=\"' + tag[1] + '\"](around:' + input.radius_meters + ',' + input.latitude + ',' + input.longitude + ');\\n'\n  + '  way[\"' + tag[0] + '\"=\"' + tag[1] + '\"](around:' + input.radius_meters + ',' + input.latitude + ',' + input.longitude + ');\\n'\n  + ');\\n'\n  + 'out center tags;';\n\nreturn [{ json: Object.assign({}, input, {\n  osm_tag_key: tag[0],\n  osm_tag_value: tag[1],\n  query: query\n}) }];"
+      },
+      "position": [
+        1120,
+        300
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "a1b2c3d4-0007-4e5f-8a9b-000000000007",
+      "name": "Query Overpass API",
+      "parameters": {
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "={{ $json.user_agent }}"
+            }
+          ]
+        },
+        "method": "GET",
+        "options": {
+          "timeout": 90000
+        },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "data",
+              "value": "={{ $json.query }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "sendQuery": true,
+        "url": "https://overpass-api.de/api/interpreter"
+      },
+      "position": [
+        1340,
+        300
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "a1b2c3d4-0008-4e5f-8a9b-000000000008",
+      "name": "Parse Leads",
+      "parameters": {
+        "jsCode": "const elements = ($input.first().json.elements) || [];\nconst cfg = $('Set Search Inputs').first().json;\nconst max = Math.min(cfg.max_results || 25, 25); // FREE SAMPLE cap: 25 results\nconst leads = [];\nfor (const el of elements) {\n  if (leads.length >= max) break;\n  const tags = el.tags || {};\n  const name = tags.name;\n  if (!name) continue; // skip unnamed map features\n  const addrParts = [tags['addr:housenumber'], tags['addr:street'], tags['addr:city'], tags['addr:postcode']].filter(Boolean);\n  leads.push({\n    business_name: name,\n    address: addrParts.join(' '),\n    phone: tags.phone || tags['contact:phone'] || ''\n    // FREE SAMPLE stops here on purpose: the paid Lead Finder also returns\n    // website, email and coordinates \u2014 the fields outreach runs on.\n  });\n}\nif (leads.length === 0) {\n  throw new Error('No named businesses found. Try a different niche (see NICHE_MAP in \"Build Overpass Query\") or check that the location geocoded correctly. Note: the free sample searches a 3,000 m radius, so very spread-out areas return fewer results.');\n}\nreturn leads.map(function (l) { return { json: l }; });"
+      },
+      "position": [
+        1560,
+        300
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "a1b2c3d4-0009-4e5f-8a9b-000000000009",
+      "name": "Save Leads to CSV",
+      "parameters": {
+        "operation": "toCsv"
+      },
+      "position": [
+        1780,
+        300
+      ],
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1
+    },
+    {
+      "id": "a1b2c3d4-0010-4e5f-8a9b-000000000010",
+      "name": "Next Steps",
+      "parameters": {
+        "color": 5,
+        "content": "## Done \u2014 download `leads.csv` from this execution.\n\n**Want the rest of the job?** This free sample stops exactly where outreach starts. The paid Lead Finder (and the full Lead Gen Pack, which adds AI enrichment + outreach drafts) adds website, email and coordinates, removes the radius/result caps, and ships the full niche map: https://payhip.com/SellaMuse\n\n**Reality check:** OpenStreetMap coverage varies by area \u2014 dense US suburbs are good, rural areas are thinner. Phone fields are often empty (that's normal for OSM data). This is a starting list, not a verified database.",
+        "height": 300,
+        "width": 560
+      },
+      "position": [
+        1780,
+        40
+      ],
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
