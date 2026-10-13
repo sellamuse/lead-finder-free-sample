@@ -1,0 +1,21 @@
+Copyright (c) 2026 Northstar AI (SellaMuse). All rights reserved.
+
+The workflow file in this repository (lead-finder-free-sample.json) is a free
+sample provided for evaluation and for use in your own business.
+
+You may:
+- Import and run the workflow in your own n8n instance.
+- Use the leads and output it produces in your own business, including work
+  you deliver to your clients.
+- Modify your own copy to fit your needs.
+
+You may not:
+- Sell, resell, sublicense, or redistribute this workflow file or the ZIP it
+  came from, in original or modified form, as a standalone product.
+- Upload it to template marketplaces or repositories as your own work.
+- Remove this notice from copies you keep.
+
+The full Lead Finder workflow — with enrichment, outreach drafts, and no
+sample limits — is available at https://payhip.com/SellaMuse
+
+This sample is provided "as is", without warranty of any kind.
